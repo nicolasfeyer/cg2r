@@ -1,119 +1,164 @@
-# Elections du Conseil général de Fribourg
+# 🗳️ CG²R — Conseil Général · Generalrat
 
-A visual data exploration application for analyzing election results of the Fribourg City General Council from 2016 to 2026.
+[![License: CC BY-NC 4.0](https://img.shields.io/badge/License-CC%20BY--NC%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc/4.0/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white)](https://vite.dev)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
 
-## Features
+**CG²R** (_**C**onseil **G**énéral – **G**eneral**r**at_) is a visual data exploration application for analyzing election results of the **Fribourg City General Council** (_Conseil général de la Ville de Fribourg / Generalrat der Stadt Freiburg_) from **1996 to 2026**.
 
-- **Election Overview**: View aggregated results by party with seat distribution and vote counts
-- **Visual Analytics**: Interactive charts showing party distribution, historical trends, and vote patterns
-- **Detailed Results**: Drill down into specific election years and party lists to see individual candidate performance
-- **Candidate Comparison**: Compare up to 6 candidates across districts with interactive visualizations
-- **Cross-Year Analysis**: Compare candidates from different years and parties in a unified view
+🔗 **Live demo**: [elections.nicolasfeyer.ch](https://elections.nicolasfeyer.ch)
 
-## Prerequisites
+![Screenshot](docs/screenshot.png)
 
-- **Node.js** (v18 or higher recommended)
-- **npm** (comes with Node.js)
+---
 
-## Getting Started
+## ✨ Features
 
-### 1. Clone the Repository
+### 📅 Legislature Explorer
+- Browse election results year by year (1996–2026)
+- Seat distribution summary with party breakdown
+- Sortable candidate results tables per party list
+- Voting details: modified vs. compact vs. without-header ballots
+- Trade balance: incoming vs. outgoing cross-party votes
+- External support heatmap: matrix of vote transfers between lists
+- Candidate demographics scatter plot (age × votes, by gender)
+
+### 🔍 Candidacy Search
+- Full-text search across all candidates who ever ran
+- Individual candidate career view with election-by-election panachage breakdown
+- Interactive line chart showing attractiveness evolution across lists
+
+### 📊 Global Statistics
+- Seats evolution chart across all legislatures
+- People evolution chart (executive power)
+- Cross-year candidate demographics scatter plot
+- Weathercocks list: candidates who switched parties
+
+### 🏛️ Dual Power Support
+- Toggle between **legislative** (Conseil général) and **executive** (Conseil communal) elections
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Framework** | [React 19](https://react.dev) |
+| **Language** | [TypeScript 5.7](https://www.typescriptlang.org) (strict mode) |
+| **Build tool** | [Vite 7](https://vite.dev) |
+| **Styling** | [Tailwind CSS 4](https://tailwindcss.com) |
+| **UI components** | [shadcn/ui](https://ui.shadcn.com) + [Radix UI](https://www.radix-ui.com) |
+| **Charts** | [Recharts](https://recharts.org) |
+| **Icons** | [Phosphor Icons](https://phosphoricons.com) + [Lucide](https://lucide.dev) |
+| **Notifications** | [Sonner](https://sonner.emilkowal.ski) |
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- **Node.js** ≥ 20
+- **npm** ≥ 10
+
+### Installation
 
 ```bash
-git clone <repository-url>
-cd spark-template
-```
+# Clone the repository
+git clone https://github.com/nicolasfeyer/cg2r.git
+cd cg2r
 
-### 2. Install Dependencies
+# Copy environment variables
+cp .env.example .env
 
-```bash
+# Install dependencies
 npm install
-```
 
-### 3. Start the Development Server
-
-```bash
+# Start the development server
 npm run dev
 ```
 
-The application will start and be available at `http://localhost:5173` (or another port if 5173 is in use).
+The app will be available at `http://localhost:5173`.
 
-## Available Scripts
+### Environment Variables
 
-- `npm run dev` - Start the development server with hot reload
-- `npm run build` - Build the application for production
-- `npm run preview` - Preview the production build locally
-- `npm run lint` - Run ESLint to check code quality
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `VITE_API_BASE_URL` | Base URL for the elections REST API | `https://elections.nicolasfeyer.ch/api/elections` |
 
-## Project Structure
+---
+
+## 📁 Project Structure
 
 ```
 src/
+├── api/              # API client functions
+│   └── elections.ts
 ├── components/
-│   ├── ui/              # Shadcn UI components
-│   └── charts/          # Custom chart components
-├── hooks/               # Custom React hooks
-├── lib/                 # Utility functions and mock data
-├── styles/              # CSS and theme files
-├── App.tsx              # Main application component
-└── index.css            # Global styles and theme variables
+│   ├── candidacy/    # Candidate search & results display
+│   ├── charts/       # Recharts-based data visualizations
+│   ├── global/       # Cross-year statistics components
+│   ├── tabs/         # Main tab content (Yearly, Candidacy, Global)
+│   ├── ui/           # shadcn/ui primitives
+│   └── yearly/       # Year-specific components (summary, details)
+├── helpers/          # Utility functions (color contrast, etc.)
+├── hooks/            # Custom React hooks
+├── lib/              # Types, utilities, export helpers
+├── styles/           # Theme CSS (Radix colors, CSS variables)
+├── App.tsx           # Root application component
+├── ErrorFallback.tsx # Error boundary fallback UI
+└── main.tsx          # Application entry point
 ```
 
-## Technology Stack
+---
 
-- **React 19** - UI framework
-- **TypeScript** - Type-safe JavaScript
-- **Vite** - Build tool and dev server
-- **Tailwind CSS 4** - Utility-first styling
-- **Shadcn UI** - Component library
-- **D3.js** - Data visualization
-- **Recharts** - Chart components
-- **Framer Motion** - Animations
-- **Phosphor Icons** - Icon library
+## 📜 Available Scripts
 
-## Usage
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Start the Vite development server |
+| `npm run build` | Type-check with `tsc` then build for production |
+| `npm run preview` | Preview the production build locally |
+| `npm run lint` | Run ESLint across the codebase |
+| `npm run format` | Format source files with Prettier |
+| `npm run typecheck` | Run TypeScript type-checking without emitting |
 
-1. **Browse Election Results**: The home page displays an overview of the 2026 election results
-2. **Explore Visualizations**: Scroll to view charts showing seat distribution, vote counts, and historical trends
-3. **Select Year & Party**: Use the dropdowns to choose a specific election year and party list
-4. **View Candidates**: See detailed results for all candidates in the selected list
-5. **Compare Candidates**: Select 2-6 candidates and click "Comparer par district" to see district-by-district comparison
-6. **Cross-Comparison**: Add candidates from different years/parties to the global comparison view
+---
 
-## Customization
+## 🤝 Contributing
 
-### Theming
+Contributions are welcome! Please see the [Contributing Guide](CONTRIBUTING.md) for details on how to get started.
 
-The application uses CSS variables for theming. Modify colors in `src/index.css`:
+---
 
-```css
-:root {
-  --primary: oklch(0.45 0.15 250);
-  --secondary: oklch(0.95 0.005 250);
-  --accent: oklch(0.55 0.18 250);
-  /* ... more variables */
-}
-```
+## 🗺️ Roadmap
 
-### Typography
+- 🇩🇪 **German translation** — Add full i18n support to reflect Fribourg's bilingual identity (French/German)
+- 📜 **Pre-1996 election data** — Digitize and integrate historical results prior to 1996, currently only available in physical form at the [Archives de la Ville de Fribourg](https://www.ville-fribourg.ch/archives)
 
-Fonts are loaded from Google Fonts (defined in `index.html`):
-- **Space Grotesk** - Headings
-- **Inter** - Body text
+---
 
-## Development Notes
+## 📄 License
 
-- The app uses mock data located in `src/lib/mockData.ts`
-- State management uses React hooks (useState, useEffect)
-- The application is fully responsive and mobile-friendly
-- All interactive elements include keyboard navigation support
+This project is licensed under the [Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0)](https://creativecommons.org/licenses/by-nc/4.0/).
 
-## Browser Support
+You are free to share and adapt this work for **non-commercial purposes**, as long as you give appropriate credit. See the [LICENSE](LICENSE) file for details.
 
-- Chrome/Edge (latest)
-- Firefox (latest)
-- Safari (latest)
+---
 
-## License
+## 📊 Data Sources
 
-This project is part of the Spark template ecosystem.
+Election data is sourced from publicly available records of:
+
+- [Canton de Fribourg](https://fr.ch)
+- [Ville de Fribourg](https://ville-fribourg.ch)
+- [e-newspaperarchives.ch](https://www.e-newspaperarchives.ch)
+
+---
+
+<p align="center">
+  Made with ❤️ in Fribourg, Switzerland
+</p>
+

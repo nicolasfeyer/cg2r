@@ -1,198 +1,168 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
-import { ChartBar, CaretUp, CaretDown, ArrowsLeftRight, Plus, Trash } from '@phosphor-icons/react'
-import {ElectionSummary, ElectionCandidateResult, ElectionList, Election} from '@/lib/types'
-import { CandidateComparisonChart } from '@/components/charts/CandidateComparisonChart'
-import { CrossComparisonChart } from '@/components/charts/CrossComparisonChart'
-import {getElections, getListsByYear, getResultsByYearAndList, getSummary} from "@/api/elections.ts";
-import {ElectionSummarySection} from "@/components/ElectionSummarySection.tsx";
-import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip.tsx";
+import { ChartBarIcon } from '@phosphor-icons/react'
+import { ElectionSummary, Election, PartyMeta, ListsMetaResponse } from '@/lib/types'
+import { getElections, getListsMeta, getParties, getSummaryByYear } from '@/api/elections.ts'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { YearlyTabContent } from '@/components/tabs/YearlyTabContent.tsx'
+import { CandidacyTabContent } from '@/components/tabs/CandidacyTabContent.tsx'
+import { GlobalTabContent } from '@/components/tabs/GlobalTabContent.tsx'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select.tsx'
+
+const DEFAULT_YEAR = '2026'
 
 function App() {
+  const { t } = useTranslation()
   const [summary, setSummary] = useState<ElectionSummary | null>(null)
-  const [candidates, setCandidates] = useState<ElectionCandidateResult[]>([])
-  const [lists, setLists] = useState<ElectionList[]>([])
   const [elections, setElections] = useState<Election[]>([])
-  const [selectedYear, setSelectedYear] = useState<string>('2026')
-  const [selectedList, setSelectedList] = useState<string>('')
+  const [selectedYear, setSelectedYear] = useState<string>(DEFAULT_YEAR)
   const [loading, setLoading] = useState(true)
-  const [candidatesLoading, setCandidatesLoading] = useState(false)
-  const [listsLoading, setListsLoading] = useState(false)
-  const [sortColumn, setSortColumn] = useState<string>('total')
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
-  const [showComparison, setShowComparison] = useState(false)
-  const [crossComparisons, setCrossComparisons] = useState<Array<{
-    candidate: ElectionCandidateResult
-    year: string
-    listNumber: string
-    listLabel: string
-  }>>([])
+  const [summaryLoading, setSummaryLoading] = useState(false)
+  const [selectedPower, setSelectedPower] = useState<'legislative' | 'executive'>('legislative')
+  const [partiesMeta, setPartiesMeta] = useState<PartyMeta[]>()
+  const [listsMeta, setListsMeta] = useState<ListsMetaResponse>()
 
   useEffect(() => {
-    fetchElectionsAndSummary()
-  }, [])
+    let cancelled = false
 
-  const fetchElectionsAndSummary = async () => {
-    try {
-      setLoading(true)
-      const dataElections = await getElections()
-      setElections(dataElections)
-      const dataSummary = await getSummary()
-      setSummary(dataSummary)
-      fetchLists(dataSummary.election_year.toString())
-      setLoading(false)
-    } catch (error) {
-      toast.error('Erreur lors du chargement des élections et du résumé')
-      console.error(error)
-      setLoading(false)
-    } finally {
-      setLoading(false)
+    const fetchInitialData = async () => {
+      try {
+        setLoading(true)
+
+        const [dataElections, listsMetaData, partiesMetaData] = await Promise.all([
+          getElections(selectedPower),
+          getListsMeta(selectedPower),
+          getParties(),
+        ])
+
+        if (cancelled) return
+
+        setElections(dataElections)
+        setListsMeta(listsMetaData)
+        setPartiesMeta(partiesMetaData)
+        if (dataElections.length > 0) {
+          setSelectedYear(DEFAULT_YEAR)
+        }
+      } catch (error) {
+        toast.error(t('error.loadingElections'))
+        if (import.meta.env.DEV) console.error(error)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
     }
+
+    void fetchInitialData()
+
+    return () => {
+      cancelled = true
+    }
+  }, [selectedPower, t])
+
+  const fetchSummary = useCallback(
+    async (power: 'legislative' | 'executive', year: string) => {
+      try {
+        setSummaryLoading(true)
+        const data = await getSummaryByYear(power, year)
+        setSummary(data)
+      } catch (error) {
+        toast.error(t('error.loadingSummary'))
+        if (import.meta.env.DEV) console.error(error)
+      } finally {
+        setSummaryLoading(false)
+      }
+    },
+    [t]
+  )
+
+  useEffect(() => {
+    if (!selectedYear) return
+    void fetchSummary(selectedPower, selectedYear)
+  }, [selectedYear, selectedPower, fetchSummary])
+
+  const getPartyMetaFromYear = (year: number, party_id: number): PartyMeta | null => {
+    if (!partiesMeta) return null
+    const partyData = Object.values(partiesMeta).filter((p) => p.party_id === party_id)
+    if (!partyData.length) return null
+
+    const match = partyData.find((party) => {
+      const validFromYear = party.valid_from ? new Date(party.valid_from).getFullYear() : -Infinity
+      const validToYear = party.valid_to ? new Date(party.valid_to).getFullYear() : Infinity
+      return year >= validFromYear && year <= validToYear
+    })
+
+    return match || partyData[0] || null
   }
 
-  const fetchCandidates = async (year: string, listNumber: string) => {
-    try {
-      setCandidatesLoading(true)
-      const data = await getResultsByYearAndList(year, listNumber)
-      setCandidates(data)
-    } catch (error) {
-      toast.error('Erreur lors du chargement des candidats')
-      console.error(error)
-      setCandidates([])
-    } finally {
-      setCandidatesLoading(false)
-    }
-  }
-
-  const fetchLists = async (year: string) => {
-    try {
-      setListsLoading(true)
-      const data = await getListsByYear(year)
-      setLists(data)
-    } catch (error) {
-      toast.error('Erreur lors du chargement des listes')
-      console.error(error)
-      setLists([])
-    } finally {
-      setListsLoading(false)
-    }
+  const getPartyMetaFromSelectedYear = (party_id: number): PartyMeta | null => {
+    return getPartyMetaFromYear(Number(selectedYear), party_id)
   }
 
   const handleYearChange = (year: string) => {
     setSelectedYear(year)
-    setSelectedList('')
-    setCandidates([])
-    setLists([])
-    setShowComparison(false)
-    fetchLists(year)
   }
 
-  const handleListChange = (listNumber: string) => {
-    setSelectedList(listNumber)
-    setShowComparison(false)
-    fetchCandidates(selectedYear, listNumber)
-  }
+  const handlePowerChange = (newPower: 'legislative' | 'executive') => {
+    if (newPower === selectedPower) return
 
-  const handleSort = (column: string) => {
-    if (sortColumn === column) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortColumn(column)
-      setSortDirection('desc')
-    }
-  }
-
-  const sortedCandidates = [...candidates].sort((a, b) => {
-    const aValue = a[sortColumn]
-    const bValue = b[sortColumn]
-    
-    const aNum = typeof aValue === 'number' ? aValue : parseFloat(String(aValue)) || 0
-    const bNum = typeof bValue === 'number' ? bValue : parseFloat(String(bValue)) || 0
-    
-    return sortDirection === 'asc' ? aNum - bNum : bNum - aNum
-  })
-
-  const getTableColumns = ():[{id:string, label:string,name:string}] => {
-    if (candidates.length === 0) return []
-    const firstRow = candidates[0]
-    const dynamic_lists_no =  Object.keys(firstRow.list_votes)
-    const dynamic_list_columns = dynamic_lists_no.map((list_no) => {
-      return {
-        "id": list_no,
-        "name": lists.filter(l => l.list_number.toString() === list_no)[0]?.short_label || `Liste ${list_no}`,
-        "label": lists.filter(l => l.list_number.toString() === list_no)[0]?.list_label || `Liste ${list_no}`,
-      }
-    })
-    const fixed_columns = [{"id":"without_header", "name":"s/en-t. ", "label":"Sans en-tête"}, {"id":"compact", "name":"comp.", "label":"Listes compactes"}, {"id":"total", name:"Total", label:"Total"}]
-    return [...dynamic_list_columns, ...fixed_columns]
-  }
-
-  const handleAddToCrossComparison = () => {
-    if (selectedCandidates.length === 0) {
-      toast.error('Sélectionnez au moins un candidat à ajouter')
-      return
-    }
-
-    const newComparisons = selectedCandidates.map(candidateNo => {
-      const candidate = candidates.find(c => c.no_candidate === candidateNo)
-      if (!candidate) return null
-
-      return {
-        candidate,
-        year: selectedYear,
-        listNumber: selectedList,
-        listLabel: currentListLabel
-      }
-    }).filter(Boolean) as Array<{
-      candidate: ElectionCandidateResult
-      year: string
-      listNumber: string
-      listLabel: string
-    }>
-
-    const totalComparisons = crossComparisons.length + newComparisons.length
-
-    if (totalComparisons > 6) {
-      toast.error('Maximum 6 candidats peuvent être comparés au total')
-      return
-    }
-
-    setCrossComparisons(prev => [...prev, ...newComparisons])
-    setSelectedCandidates([])
-    toast.success(`${newComparisons.length} candidat${newComparisons.length > 1 ? 's' : ''} ajouté${newComparisons.length > 1 ? 's' : ''} à la comparaison`)
-  }
-
-  const handleRemoveFromCrossComparison = (index: number) => {
-    setCrossComparisons(prev => prev.filter((_, i) => i !== index))
-  }
-
-  const handleClearCrossComparisons = () => {
-    setCrossComparisons([])
+    setSelectedYear('')
+    setSelectedPower(newPower)
+    setSummary(null)
+    setLoading(true)
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6 md:space-y-8">
+    <div className="min-h-screen bg-background flex flex-col">
+      <div className="container mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6 md:space-y-8 flex-1">
         <header className="space-y-2">
           <div className="flex items-center gap-3">
-            <ChartBar size={32} weight="duotone" className="text-primary" />
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-              Elections du Conseil général de la Ville de Fribourg
-            </h1>
+            <ChartBarIcon size={32} weight="duotone" className="text-primary" />
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{t('app.title')}</h1>
           </div>
-          <p className="text-muted-foreground">
-            Résultats et statistiques des élections du Conseil général de 2016 à 2026
-          </p>
+          <p className="text-muted-foreground">{t('app.subtitle')}</p>
         </header>
 
-        {loading ? (
+        <Card className="bg-muted/30 border-primary/20 shadow-sm">
+          <CardContent>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <label className="text-base font-semibold flex items-center gap-2">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
+                    ·
+                  </span>
+                  {t('app.selectPowerLabel')}
+                </label>
+                <p className="text-sm text-muted-foreground">{t('app.selectPowerDescription')}</p>
+              </div>
+
+              <Select value={selectedPower} onValueChange={handlePowerChange}>
+                <SelectTrigger className="h-12 text-lg font-medium border-primary/50 hover:border-primary transition-colors">
+                  <SelectValue placeholder={t('app.selectPowerPlaceholder')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem key="legislative" value="legislative">
+                    <span className="text-base font-medium">{t('app.legislativeCouncil')}</span>
+                  </SelectItem>
+                  <SelectItem key="executive" value="executive">
+                    <span className="text-base font-medium">{t('app.executiveCouncil')}</span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        {loading || (!summary && summaryLoading) ? (
           <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
-            {[1, 2, 3, 4].map(i => (
+            {[1, 2, 3, 4].map((i) => (
               <Card key={i}>
                 <CardHeader>
                   <Skeleton className="h-5 w-32" />
@@ -203,270 +173,94 @@ function App() {
               </Card>
             ))}
           </div>
-        ) : summary && elections ? (
-          <>
-            <ElectionSummarySection summary={summary} />
-
-            <Separator className="my-8" />
-
-            {/*<section className="space-y-6">*/}
-            {/*  <h2 className="text-xl md:text-2xl font-semibold">*/}
-            {/*    Visualisations*/}
-            {/*  </h2>*/}
-
-            {/*  <div className="grid gap-6 lg:grid-cols-2">*/}
-            {/*    <PartyDistributionChart data={summary.results} type="seats" year={summary.election_year} />*/}
-            {/*    <PartyDistributionChart data={summary.results} type="votes" year={summary.election_year} />*/}
-            {/*  </div>*/}
-
-            {/*  <VoteTrendsChart historicalData={historicalSummaries} />*/}
-            {/*</section>*/}
-
-            {/*<Separator className="my-8" />*/}
-
-            <section className="space-y-4">
-              <h2 className="text-xl md:text-2xl font-semibold">
-                Résultats détaillés par liste
-              </h2>
-
-              <div className="flex flex-col md:flex-row gap-3">
-                <div className="flex-1 space-y-2">
-                  <label className="text-sm font-medium">Année</label>
-                  <Select value={selectedYear} onValueChange={handleYearChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner une année" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {elections.map(election => {
-                        const year = election.id
-                        return <SelectItem key={year} value={year+""}>
-                          {year}
-                        </SelectItem>
-                      })}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex-1 space-y-2">
-                  <label className="text-sm font-medium">Liste</label>
-                  <Select value={selectedList} onValueChange={handleListChange}>
-                    <SelectTrigger disabled={listsLoading}>
-                      <SelectValue placeholder="Sélectionner une liste" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {lists.map(party => (
-                        <SelectItem key={party.list_number} value={party.list_number.toString()}>
-                          {party.list_number}. {party.list_label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {candidatesLoading ? (
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="space-y-3">
-                      {[1, 2, 3, 4, 5].map(i => (
-                        <Skeleton key={i} className="h-12 w-full" />
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : candidates.length > 0 ? (
-                <>
-                  <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">
-                        {selectedCandidates.length} candidat{selectedCandidates.length !== 1 ? 's' : ''} sélectionné{selectedCandidates.length !== 1 ? 's' : ''}
-                      </span>
-                      {selectedCandidates.length > 0 && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setSelectedCandidates([])}
-                          className="h-7 text-xs"
-                        >
-                          Tout désélectionner
-                        </Button>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {selectedCandidates.length >= 2 && (
-                        <Button
-                          onClick={handleShowComparison}
-                          size="sm"
-                          className="gap-2"
-                        >
-                          <ArrowsLeftRight size={16} weight="bold" />
-                          Comparer par liste
-                        </Button>
-                      )}
-                      {selectedCandidates.length > 0 && (
-                        <>
-                          <Button
-                            onClick={handleAddToCrossComparison}
-                            size="sm"
-                            variant="secondary"
-                            className="gap-2"
-                            disabled={crossComparisons.length + selectedCandidates.length > 6}
-                          >
-                            <Plus size={16} weight="bold" />
-                            Ajouter à la comparaison globale
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="rounded-lg border bg-card">
-                    <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
-                      <table className="w-full text-sm">
-                        <thead className="bg-secondary/80 sticky top-0 z-10">
-                          <tr>
-                            <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-xs">
-                              N°
-                            </th>
-                            <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-xs sticky left-0 bg-secondary/80">
-                              Candidat
-                            </th>
-                            {getTableColumns().map(col => (
-                              <th
-                                key={col.id}
-                                className="px-4 py-3 text-right font-semibold uppercase tracking-wide text-xs cursor-pointer hover:bg-accent/20 transition-colors select-none"
-                                onClick={() => handleSort(col.id)}
-                              >
-                                <div className="flex items-center justify-end gap-1">
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <span className="cursor-help underline decoration-dotted">{col.name}</span>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="bottom">
-                                      {col.label}
-                                    </TooltipContent>
-                                  </Tooltip>
-                                  {sortColumn === col.id && (
-                                    sortDirection === 'asc' ?
-                                      <CaretUp size={14} weight="bold" className="text-primary" /> :
-                                      <CaretDown size={14} weight="bold" className="text-primary" />
-                                  )}
-                                </div>
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {sortedCandidates.map((candidate, idx) => (
-                            <tr
-                              key={candidate.no_candidate}
-                              className={`border-t hover:bg-accent/10 transition-colors ${
-                                idx % 2 === 0 ? 'bg-background' : 'bg-secondary/30'
-                              } ${selectedCandidates.includes(candidate.no_candidate) ? 'bg-accent/20' : ''}`}
-                            >
-                              <td className="px-4 py-3 text-muted-foreground font-mono text-xs">
-                                {candidate.no_candidate}
-                              </td>
-                              <td className="px-4 py-3 font-medium sticky left-0 bg-inherit">
-                                {candidate.name}
-                              </td>
-                              {getTableColumns().map(col => (
-                                <td key={col.id} className="px-4 py-3 text-right tabular-nums">
-                                  {candidate.list_votes[col.id] ?? candidate[col.id] ?? '—'}
-                                </td>
-                              ))}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  {showComparison && selectedCandidates.length >= 2 && (
-                    <div className="mt-6">
-                      <CandidateComparisonChart
-                        candidates={candidates}
-                        selectedCandidates={selectedCandidates}
-                      />
-                    </div>
-                  )}
-                </>
-              ) : selectedList ? (
-                <Card>
-                  <CardContent className="pt-6 text-center text-muted-foreground">
-                    Aucun résultat disponible pour cette sélection
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card>
-                  <CardContent className="pt-6 text-center text-muted-foreground">
-                    Sélectionnez une liste pour afficher les résultats détaillés
-                  </CardContent>
-                </Card>
-              )}
-            </section>
-
-            {crossComparisons.length > 0 && (
-              <>
-                <Separator className="my-8" />
-
-                <section className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-xl md:text-2xl font-semibold">
-                      Comparaison globale
-                    </h2>
-                    <Button
-                      onClick={handleClearCrossComparisons}
-                      size="sm"
-                      variant="destructive"
-                      className="gap-2"
-                    >
-                      <Trash size={16} weight="bold" />
-                      Tout effacer
-                    </Button>
-                  </div>
-
-                  <Card className="bg-secondary/30">
-                    <CardContent className="pt-6">
-                      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                        {crossComparisons.map((comp, idx) => (
-                          <div key={idx} className="flex items-start gap-3 p-3 rounded-lg bg-background border border-border">
-                            <div className="flex-1 min-w-0">
-                              <div className="font-medium truncate">{comp.candidate.name}</div>
-                              <div className="text-sm text-muted-foreground">
-                                {comp.listLabel}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                Année {comp.year} • {comp.candidate.total} voix
-                              </div>
-                            </div>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleRemoveFromCrossComparison(idx)}
-                              className="shrink-0 h-8 w-8 p-0"
-                            >
-                              <Trash size={16} />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <CrossComparisonChart comparisons={crossComparisons} />
-                </section>
-              </>
-            )}
-          </>
-        ) : (
+        ) : !summary || !partiesMeta || !listsMeta ? (
           <Card>
             <CardContent className="pt-6 text-center text-muted-foreground">
-              Aucune donnée disponible
+              {t('app.noDataAvailable')}
             </CardContent>
           </Card>
+        ) : (
+          <Tabs defaultValue="yearly" className="space-y-6">
+            <div className="w-full overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
+              <TabsList className="inline-flex w-max min-w-full sm:w-full sm:grid sm:grid-cols-3 max-w-2xl mx-auto h-auto">
+                <TabsTrigger value="yearly" className="px-4 py-2">
+                  {t('app.tabLegislatures')}
+                </TabsTrigger>
+                <TabsTrigger value="candidacy" className="px-4 py-2">
+                  {t('app.tabCandidacies')}
+                </TabsTrigger>
+                <TabsTrigger value="global" className="px-4 py-2">
+                  {t('app.tabGlobal')}
+                </TabsTrigger>
+              </TabsList>
+            </div>
+
+            <TabsContent value="yearly" className="space-y-6 mt-0">
+              <YearlyTabContent
+                getPartyMetaFromSelectedYear={getPartyMetaFromSelectedYear}
+                selectedPower={selectedPower}
+                selectedYear={selectedYear}
+                handleYearChange={handleYearChange}
+                elections={elections}
+                summaryLoading={summaryLoading}
+                summary={summary as ElectionSummary}
+              />
+            </TabsContent>
+
+            <TabsContent value="candidacy" className="space-y-6">
+              <CandidacyTabContent
+                listsMeta={listsMeta}
+                getPartyMetaFromYear={getPartyMetaFromYear}
+              />
+            </TabsContent>
+
+            <TabsContent value="global" className="space-y-6">
+              <GlobalTabContent
+                listsMeta={listsMeta}
+                selectedPower={selectedPower}
+                getPartyMetaFromYear={getPartyMetaFromYear}
+              />
+            </TabsContent>
+          </Tabs>
         )}
       </div>
+
+      <footer className="border-t">
+        <div className="container mx-auto px-4 md:px-6 py-4 text-xs text-muted-foreground flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <p>
+            {t('app.footerLegal')} ·{' '}
+            <a href="mailto:nicolas.feyer@hotmail.com" className="underline">
+              {t('app.footerAuthor')}
+            </a>
+            {' · '}
+            {t('app.footerVersion', { version: __APP_VERSION__ })}
+          </p>
+          <p>
+            {t('app.footerDataSources')}{' '}
+            <a className="underline" target="_blank" rel="noreferrer" href="https://fr.ch">
+              {t('app.cantonFribourg')}
+            </a>
+            {t('app.footerDataSourcesSeparator1')}{' '}
+            <a
+              className="underline"
+              target="_blank"
+              rel="noreferrer"
+              href="https://ville-fribourg.ch"
+            >
+              {t('app.villeFribourg')}
+            </a>{' '}
+            {t('app.footerDataSourcesSeparator2')}{' '}
+            <a
+              className="underline"
+              target="_blank"
+              rel="noreferrer"
+              href="https://www.e-newspaperarchives.ch"
+            >
+              {t('app.eNewspaperArchives')}
+            </a>
+          </p>
+        </div>
+      </footer>
     </div>
   )
 }

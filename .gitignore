@@ -106,3 +106,11 @@ fabric.properties
 !.idea/runConfigurations
 
 # End of https://www.toptal.com/developers/gitignore/api/react,webstorm+all
+
+# Build output
+dist
+
+# Environment files
+.env
+.env.local
+.env*.local
