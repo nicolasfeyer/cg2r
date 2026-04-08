@@ -6,7 +6,7 @@
 [![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white)](https://vite.dev)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
 
-**CG²R** (_**C**onseil **G**énéral – **G**eneral**r**at_) is a visual data exploration application for analyzing election results of the **Fribourg City General Council** (_Conseil général de la Ville de Fribourg / Generalrat der Stadt Freiburg_) from **1996 to 2026**.
+**CG²R** is a visual data exploration application for analyzing municipal election results of the **Fribourg City** from **1996 to 2026**.
 
 🔗 **Live demo**: [elections.nicolasfeyer.ch](https://elections.nicolasfeyer.ch)
 
@@ -84,33 +84,9 @@ The app will be available at `http://localhost:5173`.
 
 ### Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `VITE_API_BASE_URL` | Base URL for the elections REST API | `https://elections.nicolasfeyer.ch/api/elections` |
-
----
-
-## 📁 Project Structure
-
-```
-src/
-├── api/              # API client functions
-│   └── elections.ts
-├── components/
-│   ├── candidacy/    # Candidate search & results display
-│   ├── charts/       # Recharts-based data visualizations
-│   ├── global/       # Cross-year statistics components
-│   ├── tabs/         # Main tab content (Yearly, Candidacy, Global)
-│   ├── ui/           # shadcn/ui primitives
-│   └── yearly/       # Year-specific components (summary, details)
-├── helpers/          # Utility functions (color contrast, etc.)
-├── hooks/            # Custom React hooks
-├── lib/              # Types, utilities, export helpers
-├── styles/           # Theme CSS (Radix colors, CSS variables)
-├── App.tsx           # Root application component
-├── ErrorFallback.tsx # Error boundary fallback UI
-└── main.tsx          # Application entry point
-```
+| Variable | Description | Default                                                 |
+|----------|-------------|---------------------------------------------------------|
+| `VITE_API_BASE_URL` | Base URL for the elections REST API | see the [API](https://github.com/nicolasfeyer/cg2r-api) |
 
 ---
 

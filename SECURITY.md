@@ -11,4 +11,4 @@ I will acknowledge your report within 48 hours and work with you to understand a
 
 ## Scope
 
-This is a front-end data visualization application that consumes a public API. It does not handle authentication, personal data, or sensitive transactions. However, reports about XSS vulnerabilities, dependency issues, or other client-side security concerns are welcome.
+This is a front-end data visualization application that consumes a public API. It does not handle authentication, non-public personal data, or sensitive transactions. However, reports about XSS vulnerabilities, dependency issues, or other client-side security concerns are welcome.

@@ -52,14 +52,7 @@ npm run build       # Full production build
 
 ## 💬 Commit Message Convention
 
-Use clear, descriptive commit messages:
-
-```
-feat: add age distribution chart for executive elections
-fix: correct vote count display for alliance lists
-refactor: extract chart tooltip into shared component
-docs: update README with new environment variable
-```
+Use clear, descriptive commit messages using [Conventional Commits](https://www.conventionalcommits.org):
 
 ## 🐛 Reporting Issues
 
