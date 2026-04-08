@@ -16,6 +16,7 @@
     "footerLegal": "L'utilisation des données de ce site est autorisée uniquement à des fins non lucratives ou journalistiques, sous réserve d'en informer préalablement l'éditeur, d'obtenir son autorisation écrite, de mentionner la source, et sans possibilité de revente ou de redistribution.",
     "footerAuthor": "Nicolas Feyer",
     "footerVersion": "v{{version}}",
+    "footerGithub": "GitHub",
     "footerDataSources": "Données publiques issues du",
     "cantonFribourg": "Canton de Fribourg",
     "footerDataSourcesSeparator1": ", de la",

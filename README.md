@@ -1,4 +1,4 @@
-# 🗳️ CG²R — Conseil Général · Generalrat
+# 📊🗳️ CG²R — Analysis of Municipal Elections in the City of Fribourg
 
 [![License: CC BY-NC 4.0](https://img.shields.io/badge/License-CC%20BY--NC%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc/4.0/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev)
