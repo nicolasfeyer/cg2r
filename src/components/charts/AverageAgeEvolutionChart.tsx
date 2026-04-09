@@ -33,7 +33,7 @@ export function AverageAgeEvolutionChart({ candidateScatterData }: AverageAgeEvo
     candidateScatterData.forEach((candidate) => {
       const year = candidate.election_year
       const age = candidate.age
-      if (!year || age === null || age === undefined) return
+      if (!year || age === null || age === undefined || age === 0) return
 
       if (!dataByYear[year]) {
         dataByYear[year] = {

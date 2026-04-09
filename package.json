@@ -1,7 +1,7 @@
 {
     "name": "cg2r",
     "description": "CG²R (Conseil Général – Generalrat) — A visual data exploration application for analyzing election results of the city of Fribourg from 1996 to 2026.",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "type": "module",
     "license": "CC-BY-NC-4.0",
     "author": "Nicolas Feyer",

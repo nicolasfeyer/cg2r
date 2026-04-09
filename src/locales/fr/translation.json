@@ -61,7 +61,7 @@
   },
   "averageAge": {
     "title": "Évolution de l'âge moyen",
-    "description": "Moyenne d'âge des candidats et candidates au fil des législatures",
+    "description": "Moyenne d'âge des candidats et candidates au fil des élections",
     "allFemaleCandidates": "Toutes les candidates",
     "allMaleCandidates": "Tous les candidats",
     "electedFemale": "Candidates élues",

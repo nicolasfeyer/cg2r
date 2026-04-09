@@ -33,18 +33,19 @@ export function CandidateDemographicsScatter({
     useMemo(() => {
       return {
         womenElected: candidateScatterData.filter(
-          (d) => d.gender.toLowerCase() === 'f' && d.elected && d.age !== null
+          (d) => d.gender.toLowerCase() === 'f' && d.elected && d.age !== null && d.age !== 0
         ),
         womenNotElected: candidateScatterData.filter(
-          (d) => d.gender.toLowerCase() === 'f' && !d.elected && d.age !== null
+          (d) => d.gender.toLowerCase() === 'f' && !d.elected && d.age !== null && d.age !== 0
         ),
         menElected: candidateScatterData.filter(
-          (d) => d.gender.toLowerCase() === 'm' && d.elected && d.age !== null
+          (d) => d.gender.toLowerCase() === 'm' && d.elected && d.age !== null && d.age !== 0
         ),
         menNotElected: candidateScatterData.filter(
-          (d) => d.gender.toLowerCase() === 'm' && !d.elected && d.age !== null
+          (d) => d.gender.toLowerCase() === 'm' && !d.elected && d.age !== null && d.age !== 0
         ),
-        haveAgeNullCandidates: candidateScatterData.filter((d) => d.age === null).length > 0,
+        haveAgeNullCandidates:
+          candidateScatterData.filter((d) => d.age === null || d.age === 0).length > 0,
       }
     }, [candidateScatterData])
 
@@ -167,7 +168,7 @@ export function CandidateDemographicsScatter({
               type="number"
               dataKey="relative_performance"
               name={t('scatter.yAxisName')}
-              domain={['dataMin - 5', 'dataMax + 5']} // S'adapte magiquement aux vraies valeurs
+              domain={['dataMin - 5', 'dataMax + 5']}
               tickFormatter={(v) => `${v.toFixed(0)}%`}
               tick={{ fill: '#6b7280' }}
               label={{
